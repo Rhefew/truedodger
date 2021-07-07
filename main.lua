@@ -11,9 +11,7 @@ function love.load()
     local grid = anim8.newGrid(118, 118, sprites.playerSheet:getWidth(), sprites.playerSheet:getHeight())
 
     animations = {}
-    animations.run = anim8.newAnimation(grid('1-5', 1), 0.1)
-
-
+    animations.run = anim8.newAnimation(grid('2-5', 1), 0.1)
 
     wf = require 'libraries/windfield/windfield'
     world = wf.newWorld(0, 1000)
