@@ -1,5 +1,6 @@
 
 music = love.audio.newSource("music/background.wav", 'stream')
+mainMenu = true
 
 function love.load()
     gameOver = false
@@ -13,10 +14,11 @@ function love.load()
     --[libraries]
     anim8 = require 'libraries/anim8/anim8'
     sti = require 'libraries/sti/sti'
-    require 'libraries/show'
     --[end]
 
+    require 'libraries/show'
     require 'enemies'
+    require 'messages'
 
     sprites = {}
     sprites.playerSheet = love.graphics.newImage('sprites/truedodger.png')
@@ -37,7 +39,7 @@ function love.load()
     animations.idle = anim8.newAnimation(playerGrid('1-1', 1), 0.1)
     animations.run = anim8.newAnimation(playerGrid('2-5', 1), 0.1)
     animations.jump = anim8.newAnimation(playerGrid('9-9', 1), 0.1)
-    animations.dash = anim8.newAnimation(playerGrid('6-8', 1), 0.1)
+    animations.dash = anim8.newAnimation(playerGrid('6-7', 1), 0.1)
 
 
     --Ground enemies animations
@@ -49,7 +51,7 @@ function love.load()
 
     animations.ground1 = anim8.newAnimation(ground1('1-2', 1), 1)
     animations.ground2 = anim8.newAnimation(ground2('1-2', 1), 0.5)
-    animations.ground3 = anim8.newAnimation(ground3('1-2', 1), 0.2)
+    animations.ground3 = anim8.newAnimation(ground3('1-1', 1), 0.2)
 
     animations.fly1 = anim8.newAnimation(fly1('1-2', 1), 1)
     animations.fly2 = anim8.newAnimation(fly2('1-2', 1), 0.09)
@@ -82,6 +84,14 @@ function love.load()
 
     platforms = {}
 
+    saveData = {}
+    saveData.highScore = 0
+
+    if love.filesystem.getInfo("data.lua") then
+        local data = love.filesystem.load("data.lua")
+        data()
+    end
+
     loadMap()
 end
 
@@ -92,21 +102,26 @@ function love.update(dt)
 
     if paused == true then return end
 
-
-    spawntimer = spawntimer + dt
-    -- local randomInverval = math.random(2,4)
-    if spawntimer > 2 then
-        spawnEnemy()
-        spawntimer = 0 + globalSpeed * spawnMultiplier
-        if spawntimer > 1.3 then
-            spawntimer = 1.3
+    world:update(dt)
+    if mainMenu == false then 
+        spawntimer = spawntimer + dt
+        -- local randomInverval = math.random(2,4)
+        if spawntimer > 2 then
+            spawnEnemy()
+            spawntimer = 0 + globalSpeed * spawnMultiplier
+            if spawntimer > 1.3 then
+                spawntimer = 1.3
+            end
+            lspawntimer = spawntimer
         end
-        lspawntimer = spawntimer
+
+        gameMap:update(dt)
+        updateEnemy(dt)
+        
+        player.score = player.score + math.ceil(dt / 0.01)
+        player.distance = math.ceil(player.score * 0.001)
     end
 
-    gameMap:update(dt)
-    world:update(dt)
-    updateEnemy(dt)
 
     local colliders = world:queryRectangleArea(player:getX() - 30, player:getY() + 28, 60, 10, {'Platform'})
     if #colliders > 0 then
@@ -136,20 +151,21 @@ function love.update(dt)
         local count = #enemies
         for i=0, count do enemies[i]=nil end
 
+        local newScore = math.ceil(player.score * globalSpeed * -1 / 10)
+        if newScore > saveData.highScore then
+            saveData.highScore = newScore
+            love.filesystem.write("data.lua", table.show(saveData, "saveData"))
+        end
         gameOver = true
     end
 
-    player.score = player.score + math.ceil(dt / 0.01)
-    player.distance = math.ceil(player.score * 0.001)
     
     --Iterating enemies
     for item, e in pairs(enemies) do
         e:setPosition(e:getX() - e.speed * dt + globalSpeed, e:getY())
         local eCollider = world:queryRectangleArea(e:getX() - 30, e:getY() + 28, 20, 10, {'Danger'})
         if #eCollider>0 then
-            table.remove(enemies, 1)
-            enemiesAvoided = enemiesAvoided + 1
-            e:destroy()
+            destroyEnemies()
         end
     end
     
@@ -171,7 +187,10 @@ function love.draw()
         love.graphics.setColor(1, 1, 1, 0.2)
     end
 
-    
+    if  mainMenu ==true then
+        love.graphics.setColor(1, 1, 1, 0.4)
+    end
+
     if gameOver == true then
         love.graphics.setColor(0.5, 0.1, 0.1)
     end
@@ -222,7 +241,19 @@ end
 
 function love.keypressed(key)
     
+    mainMenu = false
+    paused = false
+
     --MUSIC SETTINGS
+    if key == 'escape' then
+        mainMenu = true
+        destroyEnemies()
+        globalSpeed = 0
+        spawnMultiplier = 0
+        player.score = 0
+        player.distance = 0
+    end
+
     if key == 'm' then
         if enableMusic == true then
             enableMusic = false
@@ -235,23 +266,13 @@ function love.keypressed(key)
 
     --PAUSE MODE
     if key == 'p' then
-        if gameOver == true then return end 
+        paused = true
+        music:pause()
 
-        if paused == true then
-            paused = false
-            if enableMusic == false then return end
-            music:play()
-        else
-            paused = true
-            music:pause()
-        end
     end
-
-    --RESTART GAME
-    if key == 'return' then
-        if gameOver == true then
-            love.load()
-        end
+    
+    if gameOver == true then
+        love.load()
     end
 
     if gameOver == true then return end
@@ -301,22 +322,32 @@ function drawText()
     else
         love.graphics.setColor(0.2, 0.52941176471, 0.8)
     end
-    love.graphics.print( "SCORE:" .. math.ceil(player.score * globalSpeed * -1 / 10), font, 250, 120, nil, 1, 1)
-    love.graphics.print( "SPEED:" .. 2 + player.distance .. "km/h", font, 420, 120, nil, 1, 1)
+
+    if mainMenu == false and gameOver == false then
+        love.graphics.print( messages.SCORE .. math.ceil(player.score * globalSpeed * -1 / 10), font, 250, 120, nil, 1, 1)
+        love.graphics.print( messages.SPEED .. 1 + player.distance .. "km/h", font, 420, 120, nil, 1, 1)
+    end
     love.graphics.setColor(1, 1,1)
 
-    love.graphics.print( "HIGH SCORE: 10293", font, 50, 550, nil, 1, 1)
+    love.graphics.print( messages.HIGH_SCORE .. saveData.highScore, font, 50, 550, nil, 1, 1)
+
+    --MAIN MENU
 
     --GAME PAUSED
+    if mainMenu == true then
+        love.graphics.print( messages.START, font, 240, 340, nil, 1.2, 1.2)
+    end
     if paused == true then
-        love.graphics.print( "GAME PAUSED", font, 260, 200, nil, 2, 2)
+        love.graphics.print( messages.GAME_PAUSED, font, 260, 200, nil, 2, 2)
+        love.graphics.print( messages.START, font, 240, 340, nil, 1.2, 1.2)
     end
 
+    
     --GAME OVER
     if gameOver == true then
-        love.graphics.print( "GAME OVER", font, 285, 200, nil, 2, 2)
-        love.graphics.print( "SCORE:"  .. math.ceil(player.score * globalSpeed * -1 / 10), font, 285, 250, nil, 2, 2)
-        love.graphics.print( "PRESS START TO PLAY", font, 260, 340, nil, 1.2, 1.2)
+        love.graphics.print( messages.GAME_OVER, font, 285, 200, nil, 2, 2)
+        love.graphics.print( messages.SCORE  .. math.ceil(player.score * globalSpeed * -1 / 10), font, 285, 250, nil, 2, 2)
+        love.graphics.print( messages.START, font, 260, 340, nil, 1.2, 1.2)
     end
 end
 

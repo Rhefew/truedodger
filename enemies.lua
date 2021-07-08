@@ -32,6 +32,7 @@ function spawnEnemy()
         enemy.animation = animations.ground2
         enemy.sprite = sprites.ground2
     else
+        enemy.speed = 400
         enemy.animation = animations.ground3
         enemy.sprite = sprites.ground3
     end
@@ -69,5 +70,13 @@ function drawEnemies()
             e.animation:draw(e.sprite, ex - e.offsetx, ey - e.offsety, nil, e.scale)
             -- player.animation:draw(sprites.playerSheet, px, py, nil, 0.7, nill, 59, 59)
         end
+    end
+end
+
+function destroyEnemies()
+    for item, e in pairs(enemies) do
+        table.remove(enemies, 1)
+        enemiesAvoided = enemiesAvoided + 1
+        e:destroy()
     end
 end
