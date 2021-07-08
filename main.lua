@@ -28,28 +28,28 @@ function love.load()
     buildUI()
     startMusic()
 
-    playerAnimations = {}
+    animations = {}
 
-    --Player playerAnimations
+    --Player animations
     local playerGrid      = anim8.newGrid(118, 118, sprites.playerSheet:getWidth(), sprites.playerSheet:getHeight())
 
-    playerAnimations.idle = anim8.newAnimation(playerGrid('1-1', 1), 0.1)
-    playerAnimations.run = anim8.newAnimation(playerGrid('2-5', 1), 0.1)
-    playerAnimations.jump = anim8.newAnimation(playerGrid('7-7', 1), 0.1)
-    playerAnimations.dash = anim8.newAnimation(playerGrid('6-6', 1), 0.1)
+    animations.idle = anim8.newAnimation(playerGrid('1-1', 1), 0.1)
+    animations.run = anim8.newAnimation(playerGrid('2-5', 1), 0.1)
+    animations.jump = anim8.newAnimation(playerGrid('9-9', 1), 0.1)
+    animations.dash = anim8.newAnimation(playerGrid('6-8', 1), 0.1)
 
 
-    --Ground enemies playerAnimations
+    --Ground enemies animations
     local ground1 = anim8.newGrid(118, 118, sprites.ground1:getWidth(), sprites.ground1:getHeight())
     local ground2 = anim8.newGrid(118, 118, sprites.ground2:getWidth(), sprites.ground1:getHeight())
     local fly1    = anim8.newGrid(118, 118, sprites.fly1:getWidth(), sprites.fly1:getHeight())
     local fly2    = anim8.newGrid(118, 118, sprites.fly2:getWidth(), sprites.fly1:getHeight())
 
-    playerAnimations.ground1 = anim8.newAnimation(ground1('1-2', 1), 1)
-    playerAnimations.ground2 = anim8.newAnimation(ground2('1-2', 1), 0.5)
+    animations.ground1 = anim8.newAnimation(ground1('1-2', 1), 1)
+    animations.ground2 = anim8.newAnimation(ground2('1-2', 1), 0.5)
 
-    playerAnimations.fly1 = anim8.newAnimation(fly1('1-2', 1), 1)
-    playerAnimations.fly2 = anim8.newAnimation(fly2('1-2', 1), 0.09)
+    animations.fly1 = anim8.newAnimation(fly1('1-2', 1), 1)
+    animations.fly2 = anim8.newAnimation(fly2('1-2', 1), 0.09)
 
     wf = require 'libraries/windfield/windfield'
     world = wf.newWorld(0, 1000, false)
@@ -64,7 +64,7 @@ function love.load()
     danger:setType('static')
 
 
-    player = world:newRectangleCollider(64, 100, 42, 64, {collision_class = 'Player'})
+    player = world:newRectangleCollider(64, 200, 42, 64, {collision_class = 'Player'})
     player:setFixedRotation(true)
     player.score = 1
     player.distance = 0
@@ -109,17 +109,24 @@ function love.update(dt)
     if #colliders > 0 then
         player.grounded = true
         if player.isDashing == true then
-            player.animation = playerAnimations.dash
+            player.animation = animations.dash
         else
-            player.animation = playerAnimations.run
+            player.animation = animations.run
         end
     else 
         player.grounded = false
-        player.animation = playerAnimations.jump
+        player.animation = animations.jump
         player.isDashing = false
     end
     
-    local dangerColliders = world:queryRectangleArea(player:getX() - 30, player:getY() - 20, 60, 60, {'Danger'})
+    local dangerColliders = {}
+    --GAME OVER
+    if player.isDashing == true then
+        dangerColliders = world:queryRectangleArea(player:getX() - 30, player:getY() - 20, 60, 30, {'Danger'})
+        -- player:setY(player:getY() - 30)
+    end
+    
+    dangerColliders = world:queryRectangleArea(player:getX() - 30, player:getY() - 20, 60, 60, {'Danger'})
     if #dangerColliders > 0 then
         
         local count = #enemies
@@ -138,13 +145,14 @@ function love.update(dt)
         if #eCollider>0 then
             table.remove(enemies, 1)
             enemiesAvoided = enemiesAvoided + 1
-            -- e:destroy()
+            e:destroy()
         end
     end
     
 
     if love.keyboard.isDown('down') then
         player.isDashing = true
+        
     else
         player.isDashing = false
     end
@@ -156,7 +164,7 @@ end
 function love.draw()
 
     if paused == true then
-        love.graphics.setColor(0.1, 0.1, 1)
+        love.graphics.setColor(1, 1, 1, 0.2)
     end
 
     
@@ -170,23 +178,17 @@ function love.draw()
     end
 
     --SET NIGHT MODE AFTER 7KM
-    if 2 + player.distance > 6 then
+    if 2 + player.distance > 4 then
         setNight()
     end
 
     --UI AND WORLD DRAWING
     gameMap:drawLayer(gameMap.layers["map"])
-    -- world:draw()
+    world:draw()
     drawText()
 
-    -- love.graphics.print( "SPEED:" .. player.distance * 60 .. "km/h", font, 420, 150, nil, 1, 1)
-
-    -- love.graphics.setColor(0.2, 0.52941176471, 0.8)
     love.graphics.draw(images.logo, 230, 42, nil, 0.5, 0.5, 1, 1)
-
     
-
-
     if gameOver == false then
         local px, py = player:getPosition()
         player.animation:draw(sprites.playerSheet, px, py, nil, 0.7, nill, 59, 59)
@@ -205,6 +207,7 @@ function setNight()
     nightMode = true
     if gameOver == false then
         love.graphics.setColor(0.1, 0.52941176471, 1)
+        images.logo = images.logonight
     end
 end
 
@@ -267,7 +270,10 @@ function buildUI()
     images = {}
     images.day = love.graphics.newImage('sprites/bg.png')
     images.night = love.graphics.newImage('sprites/bg_night.png')
-    images.logo = love.graphics.newImage('sprites/logo.png')
+    images.logoday = love.graphics.newImage('sprites/logo.png')
+    images.logonight = love.graphics.newImage('sprites/logo_night.png')
+    
+    images.logo = images.logoday
 
     font = love.graphics.newFont('fonts/ps2p.ttf')
 end
@@ -286,7 +292,11 @@ end
 
 function drawText()
     --DURING GAME
-    love.graphics.setColor(0.2, 0.52941176471, 0.8)
+    if nightMode == true then 
+        love.graphics.setColor(1, 1, 1, 1)
+    else
+        love.graphics.setColor(0.2, 0.52941176471, 0.8)
+    end
     love.graphics.print( "SCORE:" .. math.ceil(player.score * globalSpeed * -1 / 10), font, 250, 120, nil, 1, 1)
     love.graphics.print( "SPEED:" .. 2 + player.distance .. "km/h", font, 420, 120, nil, 1, 1)
     love.graphics.setColor(1, 1,1)
