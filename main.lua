@@ -176,7 +176,7 @@ function love.draw()
 
     --UI AND WORLD DRAWING
     gameMap:drawLayer(gameMap.layers["map"])
-    world:draw()
+    -- world:draw()
     drawText()
 
     -- love.graphics.print( "SPEED:" .. player.distance * 60 .. "km/h", font, 420, 150, nil, 1, 1)
@@ -232,6 +232,7 @@ function love.keypressed(key)
 
         if paused == true then
             paused = false
+            if enableMusic == false then return end
             music:play()
         else
             paused = true
