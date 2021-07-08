@@ -4,19 +4,24 @@ function spawnEnemy()
     local probability = 2
     local rIsFlying = math.random(0,probability)
 
-    local height = 50
-    local width = 25
-    local offsetMultiplier = 1
+    local params = {}
+    params.height = 50
+    params.width = 25
+    params.xpos = 270
+    params.ypos = 420
     if rIsFlying == probability then
-        height = 25
-        width = 40
-        offsetMultiplier = 0
+        params.height = 25
+        params.width = 40
+        params.xpos = 270
+        params.ypos = 360
     end
-    local e = { x = 270, y = 340 + offsetMultiplier * 60, offset = 1000 , w = width, h = height}
+    local e = { x = params.xpos, y = params.ypos, offset = 1000 , w = params.width, h = params.height}
 
     local enemy = world:newRectangleCollider(e.offset , e.y, e.w, e.h, { collision_class = 'Danger' })
     enemy:setType('static')
     
+    enemy.offsetx = e.w + 10
+    enemy.offsety = e.y/8
     
     local randomSprite = math.random(1,2)
     enemy.speed = 240
@@ -27,11 +32,11 @@ function spawnEnemy()
         enemy.animation = playerAnimations.ground2
         enemy.sprite = sprites.ground2
     end
-    enemy.offsetx = 20
-    enemy.offsety = 36
     enemy.scale = 0.7
 
     if rIsFlying == probability then
+        enemy.offsetx = e.w - 12
+        enemy.offsety = enemy.offsety - 10
         if randomSprite == 1 then
             enemy.animation = playerAnimations.fly1
             enemy.sprite = sprites.fly1
@@ -40,8 +45,6 @@ function spawnEnemy()
             enemy.sprite = sprites.fly2
         end
         enemy.speed = 400
-        enemy.offsetx = 24
-        enemy.offsety = 24
         enemy.scale = 0.5
     end
 
@@ -55,7 +58,9 @@ function updateEnemy(dt)
 end
 
 function drawEnemies()
-    for i, e in ipairs(enemies) do
+    if gameOver == true then return end 
+    
+    for i, e in pairs(enemies) do
         if e ~= nil then
             local ex, ey = e:getPosition()
             e.animation:draw(e.sprite, ex - e.offsetx, ey - e.offsety, nil, e.scale)

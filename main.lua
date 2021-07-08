@@ -1,6 +1,10 @@
 
+    music = love.audio.newSource("music/background.wav", 'stream')
+
 function love.load()
     gameOver = false
+    paused = false
+    nightMode = false
     --[libraries]
     anim8 = require 'libraries/anim8/anim8'
     sti = require 'libraries/sti/sti'
@@ -17,6 +21,7 @@ function love.load()
     sprites.fly2 =    love.graphics.newImage('sprites/fly2.png')
     
     buildUI()
+    startMusic()
 
     playerAnimations = {}
 
@@ -36,10 +41,10 @@ function love.load()
     local fly2    = anim8.newGrid(118, 118, sprites.fly2:getWidth(), sprites.fly1:getHeight())
 
     playerAnimations.ground1 = anim8.newAnimation(ground1('1-2', 1), 1)
-    playerAnimations.ground2 = anim8.newAnimation(ground2('1-2', 1), 1)
+    playerAnimations.ground2 = anim8.newAnimation(ground2('1-2', 1), 0.5)
 
     playerAnimations.fly1 = anim8.newAnimation(fly1('1-2', 1), 1)
-    playerAnimations.fly2 = anim8.newAnimation(fly2('1-2', 1), 1)
+    playerAnimations.fly2 = anim8.newAnimation(fly2('1-2', 1), 0.09)
 
     wf = require 'libraries/windfield/windfield'
     world = wf.newWorld(0, 1000, false)
@@ -77,9 +82,12 @@ function love.update(dt)
 
     if gameOver == true then return end
 
+    if paused == true then return end
+
+
     spawntimer = spawntimer + dt
-    local randomInverval = love.math.random(1.6,3)
-    if spawntimer > randomInverval then
+    -- local randomInverval = math.random(2,4)
+    if spawntimer > 2 then
         spawnEnemy()
         spawntimer = 0 + globalSpeed * spawnMultiplier
         if spawntimer > 1.3 then
@@ -106,9 +114,12 @@ function love.update(dt)
         player.isDashing = false
     end
     
-    local dangerColliders = world:queryRectangleArea(player:getX() - 30, player:getY() + 28, 60, 10, {'Danger'})
+    local dangerColliders = world:queryRectangleArea(player:getX() - 30, player:getY() - 20, 60, 60, {'Danger'})
     if #dangerColliders > 0 then
-        player:destroy()
+        
+        local count = #enemies
+        for i=0, count do enemies[i]=nil end
+
         gameOver = true
     end
 
@@ -121,7 +132,7 @@ function love.update(dt)
         local eCollider = world:queryRectangleArea(e:getX() - 30, e:getY() + 28, 20, 10, {'Danger'})
         if #eCollider>0 then
             table.remove(enemies, 1)
-            e:destroy()
+            -- e:destroy()
         end
     end
     
@@ -137,31 +148,80 @@ function love.update(dt)
 end
 
 function love.draw()
-    world:draw()
-    -- love.graphics.draw(images.background, 0, 0, nil, 1, 0.9, 1, 1)
+
+    if paused == true then
+        
+        love.graphics.setColor(0.1, 0.1, 1)
+
+    end
+
+    
+    if gameOver == true then
+        
+        love.graphics.setColor(0.5, 0.1, 0.1)
+
+    end
+    -- world:draw()
+    love.graphics.draw(images.background, 0, 0, nil, 1, 0.9, 1, 1)
+    -- if 2 + player.distance > 5 and nightMode == false then
+    --     setNight()
+    --     buildUI()
+    -- -- elseif 2 + player.distance > 10 then
+    -- --     setDay()
+    -- --     buildUI()
+    -- end
     gameMap:drawLayer(gameMap.layers["map"])
-    love.graphics.setColor(0.1, 0.5, 0.5)
-    love.graphics.print( "SCORE:" .. math.ceil(player.score * globalSpeed * -1 / 10), font, 250, 150, nil, 1, 1)
-    love.graphics.print( "SPEED:" .. 2 + player.distance .. "km/h", font, 420, 150, nil, 1, 1)
-    love.graphics.setColor(1,1,1)
+    drawText()
+
     -- love.graphics.print( "SPEED:" .. player.distance * 60 .. "km/h", font, 420, 150, nil, 1, 1)
+
+    -- love.graphics.setColor(0.2, 0.52941176471, 0.8)
+    love.graphics.draw(images.logo, 230, 42, nil, 0.5, 0.5, 1, 1)
+
+    
+
 
     if gameOver == false then
         local px, py = player:getPosition()
-        love.graphics.draw(images.logo, 200, 42, nil, 0.6, 0.6, 1, 1)
         player.animation:draw(sprites.playerSheet, px, py, nil, 0.7, nill, 59, 59)
 
         drawEnemies()
     end
+
     --DEBUG
         -- love.graphics.print( "global speed:" ..  globalSpeed , font, 250, 250, nil, 1, 1)
         -- love.graphics.print( "number of enemies:" ..  #enemies , font, 250, 300, nil, 1, 1)
     --DEBUG
 end
 
+function setNight()
+    nightMode = true
+    love.graphics.setColor(0.1, 0.52941176471, 1)
+end
+
+function setDay()
+    nightMode = false
+    love.graphics.setColor(1,1,1)
+end
+
 function love.keypressed(key)
+    if key == 'p' then
+        if gameOver == true then return end 
+
+        if paused == true then
+            paused = false
+            music:play()
+        else
+
+            paused = true
+            music:pause()
+        end
+    end
+    
     if key == 'return' then
-        love.load()
+        if gameOver == true then
+            love.load()
+        end
     end
     if gameOver == true then return end
 
@@ -183,6 +243,30 @@ function buildUI()
     images.logo = love.graphics.newImage('sprites/logo.png')
 
     font = love.graphics.newFont('fonts/ps2p.ttf')
+end
+
+function startMusic()
+    music:setVolume(0.2)
+    music:setLooping(true)
+    music:play()
+end
+
+function drawText()
+    love.graphics.setColor(0.2, 0.52941176471, 0.8)
+    love.graphics.print( "SCORE:" .. math.ceil(player.score * globalSpeed * -1 / 10), font, 250, 120, nil, 1, 1)
+    love.graphics.print( "SPEED:" .. 2 + player.distance .. "km/h", font, 420, 120, nil, 1, 1)
+    love.graphics.setColor(1, 1,1)
+
+    if paused == true then
+        love.graphics.print( "GAME PAUSED", font, 260, 200, nil, 2, 2)
+    end
+
+    
+    if gameOver == true then
+        love.graphics.print( "GAME OVER", font, 285, 200, nil, 2, 2)
+        love.graphics.print( "SCORE:"  .. math.ceil(player.score * globalSpeed * -1 / 10), font, 285, 250, nil, 2, 2)
+        love.graphics.print( "PRESS START TO PLAY", font, 260, 340, nil, 1.2, 1.2)
+    end
 end
 
 function spawnPlatform(x, y, w, h)
