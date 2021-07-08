@@ -1,10 +1,15 @@
 
-    music = love.audio.newSource("music/background.wav", 'stream')
+music = love.audio.newSource("music/background.wav", 'stream')
 
 function love.load()
     gameOver = false
     paused = false
+    enableMusic = false
     nightMode = false
+
+    enemiesAvoided = 0
+
+
     --[libraries]
     anim8 = require 'libraries/anim8/anim8'
     sti = require 'libraries/sti/sti'
@@ -132,6 +137,7 @@ function love.update(dt)
         local eCollider = world:queryRectangleArea(e:getX() - 30, e:getY() + 28, 20, 10, {'Danger'})
         if #eCollider>0 then
             table.remove(enemies, 1)
+            enemiesAvoided = enemiesAvoided + 1
             -- e:destroy()
         end
     end
@@ -150,27 +156,27 @@ end
 function love.draw()
 
     if paused == true then
-        
         love.graphics.setColor(0.1, 0.1, 1)
-
     end
 
     
     if gameOver == true then
-        
         love.graphics.setColor(0.5, 0.1, 0.1)
-
     end
-    -- world:draw()
-    love.graphics.draw(images.background, 0, 0, nil, 1, 0.9, 1, 1)
-    -- if 2 + player.distance > 5 and nightMode == false then
-    --     setNight()
-    --     buildUI()
-    -- -- elseif 2 + player.distance > 10 then
-    -- --     setDay()
-    -- --     buildUI()
-    -- end
+    if nightMode == true then 
+        love.graphics.draw(images.night, 0, 0, nil, 1, 0.9, 1, 1)
+    else
+        love.graphics.draw(images.day, 0, 0, nil, 1, 0.9, 1, 1)
+    end
+
+    --SET NIGHT MODE AFTER 7KM
+    if 2 + player.distance > 6 then
+        setNight()
+    end
+
+    --UI AND WORLD DRAWING
     gameMap:drawLayer(gameMap.layers["map"])
+    world:draw()
     drawText()
 
     -- love.graphics.print( "SPEED:" .. player.distance * 60 .. "km/h", font, 420, 150, nil, 1, 1)
@@ -195,8 +201,11 @@ function love.draw()
 end
 
 function setNight()
+    
     nightMode = true
-    love.graphics.setColor(0.1, 0.52941176471, 1)
+    if gameOver == false then
+        love.graphics.setColor(0.1, 0.52941176471, 1)
+    end
 end
 
 function setDay()
@@ -205,6 +214,19 @@ function setDay()
 end
 
 function love.keypressed(key)
+    
+    --MUSIC SETTINGS
+    if key == 'm' then
+        if enableMusic == true then
+            enableMusic = false
+            music:pause()
+        else
+            enableMusic = true
+            music:play()
+        end
+    end
+
+    --PAUSE MODE
     if key == 'p' then
         if gameOver == true then return end 
 
@@ -212,19 +234,22 @@ function love.keypressed(key)
             paused = false
             music:play()
         else
-
             paused = true
             music:pause()
         end
     end
-    
+
+    --RESTART GAME
     if key == 'return' then
         if gameOver == true then
             love.load()
         end
     end
+
     if gameOver == true then return end
 
+
+    --JUMPING AND FALLING
     if key == 'up' then
         local colliders = world:queryRectangleArea(player:getX() - 30, player:getY() + 28, 60, 10, {'Platform'})
         if #colliders > 0 then
@@ -239,29 +264,40 @@ function buildUI()
     -- love.graphics.setBackgroundColor( 1, 1, 1, 0.9 )
 
     images = {}
-    images.background = love.graphics.newImage('sprites/bg.png')
+    images.day = love.graphics.newImage('sprites/bg.png')
+    images.night = love.graphics.newImage('sprites/bg_night.png')
     images.logo = love.graphics.newImage('sprites/logo.png')
 
     font = love.graphics.newFont('fonts/ps2p.ttf')
 end
 
+function changeBackground()
+
+end
+
 function startMusic()
     music:setVolume(0.2)
     music:setLooping(true)
-    music:play()
+    if enableMusic == true then
+        music:play()
+    end
 end
 
 function drawText()
+    --DURING GAME
     love.graphics.setColor(0.2, 0.52941176471, 0.8)
     love.graphics.print( "SCORE:" .. math.ceil(player.score * globalSpeed * -1 / 10), font, 250, 120, nil, 1, 1)
     love.graphics.print( "SPEED:" .. 2 + player.distance .. "km/h", font, 420, 120, nil, 1, 1)
     love.graphics.setColor(1, 1,1)
 
+    love.graphics.print( "HIGH SCORE: 10293", font, 50, 550, nil, 1, 1)
+
+    --GAME PAUSED
     if paused == true then
         love.graphics.print( "GAME PAUSED", font, 260, 200, nil, 2, 2)
     end
 
-    
+    --GAME OVER
     if gameOver == true then
         love.graphics.print( "GAME OVER", font, 285, 200, nil, 2, 2)
         love.graphics.print( "SCORE:"  .. math.ceil(player.score * globalSpeed * -1 / 10), font, 285, 250, nil, 2, 2)
