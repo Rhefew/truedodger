@@ -119,6 +119,6 @@
  </layer>
  <objectgroup id="5" name="Platform">
   <object id="5" name="Platform" x="0" y="464" width="816" height="136"/>
-  <object id="7" name="danger" x="-24" y="304" width="8" height="296"/>
+  <object id="7" name="danger" x="-32" y="304" width="8" height="296"/>
  </objectgroup>
 </map>

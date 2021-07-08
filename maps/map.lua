@@ -250,7 +250,7 @@ return {
           name = "danger",
           type = "",
           shape = "rectangle",
-          x = -24,
+          x = -32,
           y = 304,
           width = 8,
           height = 296,
