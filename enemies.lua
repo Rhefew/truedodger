@@ -2,7 +2,7 @@ enemies = {}
 
 function spawnEnemy()
     local probability = 2
-    local rIsFlying = math.random(2,probability)
+    local rIsFlying = math.random(0,probability)
 
     local params = {}
     params.height = 50
@@ -13,7 +13,7 @@ function spawnEnemy()
         params.height = 25
         params.width = 40
         params.xpos = 300
-        params.ypos = 400
+        params.ypos = 390
     end
     local e = { x = params.xpos, y = params.ypos, offset = 1000 , w = params.width, h = params.height}
 
@@ -23,14 +23,17 @@ function spawnEnemy()
     enemy.offsetx = e.w + 10
     enemy.offsety = e.y/8
     
-    local randomSprite = math.random(1,2)
+    local randomSprite = math.random(1,3)
     enemy.speed = 240
     if randomSprite == 1 then
         enemy.animation = animations.ground1
         enemy.sprite = sprites.ground1
-    else
+    elseif randomSprite == 2 then
         enemy.animation = animations.ground2
         enemy.sprite = sprites.ground2
+    else
+        enemy.animation = animations.ground3
+        enemy.sprite = sprites.ground3
     end
     enemy.scale = 0.7
 

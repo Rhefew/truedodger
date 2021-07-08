@@ -22,6 +22,7 @@ function love.load()
     sprites.playerSheet = love.graphics.newImage('sprites/truedodger.png')
     sprites.ground1 = love.graphics.newImage('sprites/ground1.png')
     sprites.ground2 = love.graphics.newImage('sprites/ground2.png')
+    sprites.ground3 = love.graphics.newImage('sprites/ground3.png')
     sprites.fly1 =    love.graphics.newImage('sprites/fly1.png')
     sprites.fly2 =    love.graphics.newImage('sprites/fly2.png')
     
@@ -41,12 +42,14 @@ function love.load()
 
     --Ground enemies animations
     local ground1 = anim8.newGrid(118, 118, sprites.ground1:getWidth(), sprites.ground1:getHeight())
-    local ground2 = anim8.newGrid(118, 118, sprites.ground2:getWidth(), sprites.ground1:getHeight())
+    local ground2 = anim8.newGrid(118, 118, sprites.ground2:getWidth(), sprites.ground2:getHeight())
+    local ground3 = anim8.newGrid(118, 118, sprites.ground3:getWidth(), sprites.ground3:getHeight())
     local fly1    = anim8.newGrid(118, 118, sprites.fly1:getWidth(), sprites.fly1:getHeight())
-    local fly2    = anim8.newGrid(118, 118, sprites.fly2:getWidth(), sprites.fly1:getHeight())
+    local fly2    = anim8.newGrid(118, 118, sprites.fly2:getWidth(), sprites.fly2:getHeight())
 
     animations.ground1 = anim8.newAnimation(ground1('1-2', 1), 1)
     animations.ground2 = anim8.newAnimation(ground2('1-2', 1), 0.5)
+    animations.ground3 = anim8.newAnimation(ground3('1-2', 1), 0.2)
 
     animations.fly1 = anim8.newAnimation(fly1('1-2', 1), 1)
     animations.fly2 = anim8.newAnimation(fly2('1-2', 1), 0.09)
@@ -64,7 +67,7 @@ function love.load()
     danger:setType('static')
 
 
-    player = world:newRectangleCollider(64, 200, 42, 64, {collision_class = 'Player'})
+    player = world:newRectangleCollider(64, 100, 42, 64, {collision_class = 'Player'})
     player:setFixedRotation(true)
     player.score = 1
     player.distance = 0
@@ -122,11 +125,12 @@ function love.update(dt)
     local dangerColliders = {}
     --GAME OVER
     if player.isDashing == true then
-        dangerColliders = world:queryRectangleArea(player:getX() - 30, player:getY() - 20, 60, 30, {'Danger'})
-        -- player:setY(player:getY() - 30)
+        dangerColliders = world:queryRectangleArea(player:getX() - 30, player:getY() + 30, 60, 10, {'Danger'})
+        player:setActive(false)
+    else
+        player:setActive(true)
+        dangerColliders = world:queryRectangleArea(player:getX() - 30, player:getY() - 20, 60, 60, {'Danger'})
     end
-    
-    dangerColliders = world:queryRectangleArea(player:getX() - 30, player:getY() - 20, 60, 60, {'Danger'})
     if #dangerColliders > 0 then
         
         local count = #enemies
@@ -178,13 +182,13 @@ function love.draw()
     end
 
     --SET NIGHT MODE AFTER 7KM
-    if 2 + player.distance > 4 then
+    if 2 + player.distance > 6 then
         setNight()
     end
 
     --UI AND WORLD DRAWING
     gameMap:drawLayer(gameMap.layers["map"])
-    world:draw()
+    -- world:draw()
     drawText()
 
     love.graphics.draw(images.logo, 230, 42, nil, 0.5, 0.5, 1, 1)
