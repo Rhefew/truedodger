@@ -64,7 +64,6 @@ function love.load()
     world:addCollisionClass('Platform')
     world:addCollisionClass('Danger')
 
-    
     danger = world:newRectangleCollider(-60, 0, 2, love.graphics.getHeight(), {collision_class = 'Danger'})
     danger:setType('static')
 
